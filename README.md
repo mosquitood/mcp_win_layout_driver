@@ -13,6 +13,8 @@ A tool for managing window layouts in MCP (Mission Control Panel) environment.
 
 ## Installation
 
+### Using pip
+
 1. Create and activate a virtual environment:
 ```bash
 python -m venv .venv
@@ -24,11 +26,36 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -e .
 ```
 
+### Using uv (Recommended)
+
+1. Install uv if you haven't:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+2. Create and activate a virtual environment:
+```bash
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
+
+3. Install the package:
+```bash
+uv pip install -e .
+```
+
 ## Development
 
+### Using pip
 Install development dependencies:
 ```bash
 pip install -e ".[dev]"
+```
+
+### Using uv
+Install development dependencies:
+```bash
+uv pip install -e ".[dev]"
 ```
 
 ### Development Tools

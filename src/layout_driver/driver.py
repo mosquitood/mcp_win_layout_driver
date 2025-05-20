@@ -1,4 +1,5 @@
 import logging
+import json
 from mcp.server.stdio import stdio_server
 from mcp.server import Server
 from mcp.types import (
@@ -11,7 +12,7 @@ from pydantic import BaseModel
 class GetProcessList(BaseModel):
     pass
 
-class GetProcessByname(BaseModel):
+class GetProcessByName(BaseModel):
     name: str
 
 class GetProcessStatus(BaseModel):
@@ -37,7 +38,7 @@ class DriverTools(str, Enum):
     SET_PROCESS_NAME = "set_process_name"
 
 
-def get_process_list() -> list:
+async def get_process_list() -> list:
     """Get a list of all processes running on the system."""
     return [
         {
@@ -62,13 +63,13 @@ def get_process_list() -> list:
         }
     ]
 
-def get_process_by_name(name: str) -> dict:
+async def get_process_by_name(name: str) -> dict:
     """Get a process by name.
 
     Args:
         name: The name of the process
     """
-    return next((process for process in get_process_list() if process["name"] == name), None)
+    return next((process for process in get_process_list() if process["name"] == name), {"name": "Process not found", "status": "not found", "pid": 0})
 
 async def get_process_status(name: str) -> str:
     """Get the status of a process.
@@ -118,61 +119,70 @@ async def serve() -> None:
             Tool(
                 name=DriverTools.GET_PROCESS_LIST,
                 description="Get a list of all processes running on the system",
-                inputSchema=GetProcessList.schema(),
-
+                inputSchema=GetProcessList.model_json_schema(),
             ),
             Tool(
                 name=DriverTools.GET_PROCESS_BY_NAME,
                 description="Get a process by name",
-                inputSchema=GetProcessByname.schema(),
-            ),
-            Tool(
-                name=DriverTools.GET_PROCESS_STATUS,
-                description="Get the status of a process",
-                inputSchema=GetProcessStatus.schema(),
+                inputSchema=GetProcessByName.model_json_schema(),
             ),
             Tool(
                 name=DriverTools.START_PROCESS,
                 description="Start a process",
-                inputSchema=StartProcess.schema(),
+                inputSchema=StartProcess.model_json_schema(),
             ),
             Tool(
                 name=DriverTools.STOP_PROCESS,
                 description="Stop a process",
-                inputSchema=StopProcess.schema(),
+                inputSchema=StopProcess.model_json_schema(),
             ),
             Tool(
                 name=DriverTools.SET_PROCESS_NAME,
                 description="Set the name of a process",
-                inputSchema=SetProcessName.schema(),
+                inputSchema=SetProcessName.model_json_schema(),
             ),
             Tool(
                 name=DriverTools.GET_PROCESS_STATUS,
                 description="Get the status of a process",
-                inputSchema=GetProcessStatus.schema(),
+                inputSchema=GetProcessStatus.model_json_schema(),
             ),
         ]
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if name == DriverTools.GET_PROCESS_LIST:
-            result = get_process_list()
-            return [TextContent(text=result)]
+            result = await get_process_list()
+            return [TextContent(
+                type="text",
+                text=json.dumps(result)
+            )]
         elif name == DriverTools.GET_PROCESS_BY_NAME:
-            result = get_process_by_name(arguments["name"])
-            return [TextContent(text=result)]
+            result = await get_process_by_name(arguments["name"])
+            return [TextContent(
+                type="text",
+                text=json.dumps(result)
+            )]
         elif name == DriverTools.GET_PROCESS_STATUS:
-            result = get_process_status(arguments["name"])
-            return [TextContent(text=result)]
+            result = await get_process_status(arguments["name"])
+            return [TextContent(
+                type="text",
+                text=result
+            )]
         elif name == DriverTools.START_PROCESS:
-            result = start_process(arguments["name"])
-            return [TextContent(text=result)]
+            result = await start_process(arguments["name"])
+            return [TextContent(
+                type="text",
+                text=result
+            )]
         elif name == DriverTools.STOP_PROCESS:
-            result = stop_process(arguments["name"])
-            return [TextContent(text=result)]
+            result = await stop_process(arguments["name"])
+            return [TextContent(
+                type="text",
+                text=result
+            )]
         elif name == DriverTools.SET_PROCESS_NAME:
-            result = set_process_name(arguments["name"], arguments["new_name"])
-            return [TextContent(text=result)]   
+            result = await set_process_name(arguments["name"], arguments["new_name"])
+            return [TextContent(type="text", text=result)]   
         else:
             raise ValueError(f"Unknown tool: {name}")
 
